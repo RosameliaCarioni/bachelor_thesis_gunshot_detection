@@ -3,4 +3,4 @@ data/*
 .idea/*
 data_frames/*
 param_optimization/*
-__pycache__*
+*__pycache__*

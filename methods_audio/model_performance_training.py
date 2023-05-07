@@ -5,9 +5,15 @@ from tensorflow import keras
 from sklearn.model_selection import StratifiedKFold
 import matplotlib.pyplot as plt
 import seaborn as sns
+from methods_audio import data_augmentation
+from methods_audio import denoising 
+from methods_audio import model_performance_training
+from methods_audio import model_training
+from methods_audio import data_handling
 
 
-def train_performance (location_model:str, x:list, y:list, learning_rate:int, epoch:int, batch_size:int) -> tuple:
+
+def train_performance_k_fold (location_model:str, x:list, y:list, learning_rate:int, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
     """ 
     https://machinelearningmastery.com/evaluate-performance-deep-learning-models-keras/ 
     https://repository.tudelft.nl/islandora/object/uuid%3A6f4f3def-f8e0-4820-8b4f-75b0254dadcd 
@@ -51,10 +57,33 @@ def train_performance (location_model:str, x:list, y:list, learning_rate:int, ep
         # 3. Split data 
         x_train = np.array(x)[train.astype(int)]
         y_train = np.array(y)[train.astype(int)]
-        x_val = np.array(x)[test.astype(int)]
-        y_val = np.array(y)[test.astype(int)]
+        x_valid = np.array(x)[test.astype(int)]
+        y_valid = np.array(y)[test.astype(int)]
         
-        model, hist = train(model, x_train, y_train, x_val, y_val, batch, epoch)        
+        # 4. Data agumentation 
+        if (type_augmentation == 'signal'):
+            x_train, y_train = data_augmentation.time_augmentation(x_train, y_train)
+        elif(type_augmentation == 'spectrogram'):
+            # TODO: work out what to do  
+            x_train, y_train = data_augmentation.spectrogram_augmentaion(x_train, y_train)
+        elif(type_augmentation == 'both'): 
+            # TODO: sort this
+             pass 
+    
+        # 5. Data denoising 
+        if (type_denoising== 'spectral'): 
+            denoising.apply_spectral(x_train)
+            denoising.apply_spectral(x_valid)
+        elif(type_denoising == 'low_pass'): 
+            denoising.apply_low_pass(x_train, low_pass_cutoff, low_pass_order)
+            denoising.apply_low_pass(x_valid, low_pass_cutoff, low_pass_order)
+   
+        # 6. Transform data in spectogram or mel-spectogram, or db-mel-spectogram 
+        x_train = data_handling.transform_data(x_train, type_transformation)
+        x_valid = data_handling.transform_data(x_valid, type_transformation)
+
+
+        model, hist = train(model, x_train, y_train, x_valid, y_valid, batch, epoch)        
         # Save information about model 
         histories.append(hist)
         
@@ -64,9 +93,9 @@ def train_performance (location_model:str, x:list, y:list, learning_rate:int, ep
         acc_scores.append(hist.history['val_accuracy'][epoch-1] * 100)
 
         # Store confusion matrix 
-        y_pred = model.predict(x_val)
+        y_pred = model.predict(x_valid)
         y_pred = [1 if prediction > 0.5 else 0 for prediction in y_pred]
-        confusion_mtx = tf.math.confusion_matrix(y_val, y_pred)
+        confusion_mtx = tf.math.confusion_matrix(y_valid, y_pred)
         confusion_matrices.append(confusion_mtx)
     
     print("%.2f%% (+/- %.2f%%)" % (np.mean(acc_scores), np.std(acc_scores)))
