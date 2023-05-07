@@ -1,0 +1,20 @@
+# Solution for tensorflow not working on M1
+# I had to create a virtual environment and run it with this configuration
+# https://stackoverflow.com/questions/72964800/what-is-the-proper-way-to-install-tensorflow-on-apple-m1-in-2022
+
+name: tf-metal
+channels:
+  - apple
+  - conda-forge
+dependencies:
+  - python=3.9  ## specify desired version
+  - pip
+  - tensorflow-deps
+
+  ## uncomment for use with Jupyter
+  ## - ipykernel
+
+  ## PyPI packages
+  - pip:
+    - tensorflow-macos
+    - tensorflow-metal  ## optional, but recommended

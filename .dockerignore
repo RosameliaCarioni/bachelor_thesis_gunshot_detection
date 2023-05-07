@@ -1,0 +1,6 @@
+data/*
+.DS_Store
+.idea/*
+data_frames/*
+param_optimization/*
+__pycache__*
