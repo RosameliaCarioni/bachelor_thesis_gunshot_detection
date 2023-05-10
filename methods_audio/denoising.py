@@ -2,7 +2,6 @@ from scipy.signal import butter, filtfilt, lfilter
 import numpy as np
 import scipy.io.wavfile as wavfile
 import noisereduce as nr
-import tensorflow as tf
 
 # This function saves clips 
 def save_denoised(reduced_noise, rate, destination_file):

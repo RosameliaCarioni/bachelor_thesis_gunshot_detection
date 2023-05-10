@@ -1,6 +1,6 @@
 from audiomentations import Compose, AddGaussianNoise, TimeStretch, PitchShift, TimeMask, SpecCompose, SpecFrequencyMask
 import random
-
+from methods_audio import data_handling
 
 def time_gaussian_noise(samples): 
     sample_rate = 8000
@@ -72,9 +72,11 @@ def time_augmentation(samples, labels):
 
     shuffled_signals, suffled_labels = zip(*paired_list) #unziping 
 
-    return shuffled_signals, suffled_labels
+    # Eventhough we unzipped the data, the type is still duple, so when returning it, we cast it to list
 
-def spectrogram_augmentaion(spectrogram, labels): 
+    return list(shuffled_signals), list(suffled_labels)
+
+def spectrogram_augmentaion(samples, labels): 
     """
         This method generates new data from spectrograms 
 
@@ -84,17 +86,26 @@ def spectrogram_augmentaion(spectrogram, labels):
         :type arg2: list of int
         :return: 2 new lists with the original data and the augmented data
     """
+    # 1. Transform data from time domain to frequency domain  
+    spectrogram = data_handling.transform_data(samples, type_transformation= 'spectrogram_temp')
     new_spects = []
     new_labels = []
+
+    # 2. Do data augmentation in frequency domain 
     for spect, label in zip(spectrogram, labels): 
         spect_augmented = spectrogram_frequency_mask(spect)
         new_spects += [spect, spect_augmented]
         new_labels += [label]*2
 
-    # Shuffle the lists to reduce any type of bias, ensuring that the paring of signal/label is kept 
+    # 3. Transform back into time domain from frequency domain  
+    #TODO     
+
+    # 3. Shuffle the lists to reduce any type of bias, ensuring that the paring of signal/label is kept 
     paired_list = list(zip(new_spects, new_labels))
     random.shuffle(paired_list)
 
     shuffled_spect, suffled_labels = zip(*paired_list) #unziping 
 
-    return shuffled_spect, suffled_labels
+    # Eventhough we unzipped the data, the type is still duple, so when returning it, we cast it to list
+
+    return list(shuffled_spect), list(suffled_labels)

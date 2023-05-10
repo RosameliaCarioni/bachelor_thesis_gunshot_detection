@@ -7,11 +7,38 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from methods_audio import data_augmentation
 from methods_audio import denoising 
-from methods_audio import model_performance_training
-from methods_audio import model_training
 from methods_audio import data_handling
+import tensorflow as tf
 
 
+def train_model(model:tf.keras.Model, x_train:list, y_train:list, x_val:list, y_val:list, batch:int, epoch:int): 
+    """Train a model by slicing the data into "batches" of size batch_size, and repeatedly iterating over the entire dataset for a given number of epochs.
+
+    Args:
+        model (tf.keras.Model): model to fit
+        x_train (list): list of signals to train model
+        y_train (list): list of labels for x_train (1: gunshot, 0: no gunshot)
+        x_val (list): list of signals to validate model 
+        y_val (list): list of labels for x_val (1: gunshot, 0: no gunshot)
+        batch (int): number of samples that will be propagated through the network
+        epoch (int): how many times mdoel will be trained. In other words, how many times model goes over training set. 
+
+    Returns:
+        tuple: model and history of training process
+    """        
+    
+    # if the validation loss doens't improve after 5 epochs, then we stop the training
+    # stop_early = tf.keras.callbacks.EarlyStopping(monitor= 'val_loss', patience=5) 
+
+    history = model.fit(
+        x_train,
+        y_train,
+        batch_size=batch,
+        epochs=epoch,
+        validation_data=(x_val, y_val),
+        # callbacks=[stop_early],
+    )
+    return model, history 
 
 def train_performance_k_fold (location_model:str, x:list, y:list, learning_rate:int, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
     """ 
@@ -47,49 +74,58 @@ def train_performance_k_fold (location_model:str, x:list, y:list, learning_rate:
         # 1. load model 
         model = keras.models.load_model(location_model)
       
-        # 2. Compile model 
+        # 2. Compile model ensuring to have wanted metrics
         model.compile(
             optimizer=keras.optimizers.SGD(learning_rate=learning_rate), 
             loss="BinaryCrossentropy", 
             metrics = ['accuracy', 'Recall', 'Precision'],
         )
 
-        # 3. Split data 
+        # 3. Split data and transform it from list of numpy.ndarray into numpy.ndarray of numpy.ndarray
         x_train = np.array(x)[train.astype(int)]
         y_train = np.array(y)[train.astype(int)]
         x_valid = np.array(x)[test.astype(int)]
         y_valid = np.array(y)[test.astype(int)]
+
+        # 4. Transform numpy.ndarray into lists
+        x_train_list = x_train.tolist() 
+        y_train_list = y_train.tolist()
+        x_valid_list = x_valid.tolist()
         
-        # 4. Data agumentation 
+        # 5. Data agumentation: if input is none then we do nothing  
         if (type_augmentation == 'signal'):
-            x_train, y_train = data_augmentation.time_augmentation(x_train, y_train)
+            x_train_list, y_train_list = data_augmentation.time_augmentation(x_train_list, y_train_list)
         elif(type_augmentation == 'spectrogram'):
             # TODO: work out what to do  
-            x_train, y_train = data_augmentation.spectrogram_augmentaion(x_train, y_train)
+            x_train_list, y_train_list = data_augmentation.spectrogram_augmentaion(x_train_list, y_train_list)
         elif(type_augmentation == 'both'): 
-            # TODO: sort this
+            # TODO: sort this out 
              pass 
     
-        # 5. Data denoising 
-        if (type_denoising== 'spectral'): 
-            denoising.apply_spectral(x_train)
-            denoising.apply_spectral(x_valid)
+        # 6. Data denoising: if input is none then we do nothing 
+        if (type_denoising == 'spectral'): 
+            x_train_list = denoising.apply_spectral(x_train_list)
+            x_valid_list =denoising.apply_spectral(x_valid_list)
         elif(type_denoising == 'low_pass'): 
-            denoising.apply_low_pass(x_train, low_pass_cutoff, low_pass_order)
-            denoising.apply_low_pass(x_valid, low_pass_cutoff, low_pass_order)
-   
-        # 6. Transform data in spectogram or mel-spectogram, or db-mel-spectogram 
-        x_train = data_handling.transform_data(x_train, type_transformation)
-        x_valid = data_handling.transform_data(x_valid, type_transformation)
+            x_train_list = denoising.apply_low_pass(x_train_list, low_pass_cutoff, low_pass_order)
+            x_valid_list =denoising.apply_low_pass(x_valid_list, low_pass_cutoff, low_pass_order)
 
+        # 7. Pad samples so that they all have the same length and transform data to frequency domain
+        x_train_list = data_handling.transform_data(x_train_list, type_transformation)
+        x_valid_list = data_handling.transform_data(x_valid_list, type_transformation)
 
-        model, hist = train(model, x_train, y_train, x_valid, y_valid, batch, epoch)        
-        # Save information about model 
+        # 8. Transform data from list to np.numpy 
+        x_train = np.array(x_train_list) 
+        y_train = np.array(y_train_list) 
+        x_valid = np.array(x_valid_list) 
+
+        # 8. Save the history of the model for future analysis
+        model, hist = train_model(model, x_train, y_train, x_valid, y_valid, batch, epoch)        
         histories.append(hist)
         
         # Display accuracy of validation set 
-        # hist.history returns all the metrics. By adding: ['val_accuracy'][-1] we get only the accuracy of the testing set at the last epoch
-        print("%s: %.2f%%" % (model.metrics_names[1], hist.history['val_accuracy'][epoch-1] *100))
+        # hist.history returns all the metrics. By adding: ['val_accuracy'][epoch-1] we get only the accuracy of the testing set at the last epoch
+        print("%s: %.2f%%" % (model.metrics_names[1], hist.history['val_accuracy'][epoch-1] *100)) #TODO: check if it should be epoch-1 or -1 only 
         acc_scores.append(hist.history['val_accuracy'][epoch-1] * 100)
 
         # Store confusion matrix 
@@ -100,40 +136,6 @@ def train_performance_k_fold (location_model:str, x:list, y:list, learning_rate:
     
     print("%.2f%% (+/- %.2f%%)" % (np.mean(acc_scores), np.std(acc_scores)))
     return confusion_matrices, histories
-
-import tensorflow as tf
-
-
-def train(model:tf.keras.Model, x_train:list, y_train:list, x_val:list, y_val:list, batch:int, epoch:int) -> tuple: 
-    """Train a model by slicing the data into "batches" of size batch_size, and repeatedly iterating over the entire dataset for a given number of epochs.
-
-    Args:
-        model (tf.keras.Model): model to fit
-        x_train (list): list of signals to train model
-        y_train (list): list of labels for x_train (1: gunshot, 0: no gunshot)
-        x_val (list): list of signals to validate model 
-        y_val (list): list of labels for x_val (1: gunshot, 0: no gunshot)
-        batch (int): number of samples that will be propagated through the network
-        epoch (int): how many times mdoel will be trained. In other words, how many times model goes over training set. 
-
-    Returns:
-        tuple: model and history of training process
-    """        
-    
-    # if the validation loss doens't improve after 5 epochs, then we stop the training
-    # stop_early = tf.keras.callbacks.EarlyStopping(monitor= 'val_loss', patience=5) 
-
-    history = model.fit(
-        x_train,
-        y_train,
-        batch_size=batch,
-        epochs=epoch,
-        validation_data=(x_val, y_val),
-        # callbacks=[stop_early],
-)
-    return model, history 
-
-
 
 def get_metrics(epoch, histories):
 

@@ -3,12 +3,12 @@ import tensorflow_io as tfio
 import os 
 
 
-def get_data()-> tf.python.data.ops.shuffle_op._ShuffleDataset:
+def get_data():
     """
     https://www.youtube.com/watch?v=ZLIPkmmDJAc&t=1468s&ab_channel=NicholasRenotte 
 
     Returns:
-        tf.python.data.ops.shuffle_op._ShuffleDataset: all data including gunshots and no gunshots, with the form (file_path,label)
+        All data including gunshots and no gunshots, with the form (file_path,label)
     """    
 
     # Data from the elephant listening project 
@@ -41,7 +41,7 @@ def get_data()-> tf.python.data.ops.shuffle_op._ShuffleDataset:
     return data
 
 
-def read_in_data(file_name, label)-> tf.python.data.ops.map_op._MapDataset: 
+def read_in_data(file_name, label): 
     """_summary_
 
     Args:
@@ -49,7 +49,7 @@ def read_in_data(file_name, label)-> tf.python.data.ops.map_op._MapDataset:
         label (_type_): A tensor of dtype "numpy.float32", with the classification of the file content: 1 (gunshot) or 0 (no gunshot)
 
     Returns:
-        tf.python.data.ops.map_op._MapDataset: 
+
     """    
 
     file_contents = tf.io.read_file(file_name) #retuns a string 
@@ -73,9 +73,20 @@ def extract_samples_labels(data):
             break 
     return x,y 
 
+def pad_sample(wave):
+    # Define length of sample 
+    size_samples = 10 # value in seconds 
+    sample_rate = 8000 
+    max_lenght = size_samples * sample_rate 
 
-def convert_to_spectogram(wave):
-     # Create spectogram 
+    # Padding with 0s
+    wave = wave[:max_lenght] #grab first elements up to max(lengths)
+    zero_padding = tf.zeros(max_lenght - tf.shape(wave), dtype=tf.float32) # pad with zeros what doesn't meet full length 
+    wave = tf.concat([zero_padding, wave],0) 
+    return wave 
+
+def convert_to_spectrogram(wave):
+     # Create spectrogram 
     # 1. Fast fourier transform 
     spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
     # frame_length =  window length in samples
@@ -90,51 +101,64 @@ def convert_to_spectogram(wave):
     spectrogram = tf.expand_dims(spectrogram, axis=2)
     return spectrogram
 
-def convert_to_mel_spectogram(wave):
+def convert_to_mel_spectrogram(wave):
     # 1. Fast fourier transform 
     spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
     # 2. Obtain the magnitude of the STFT
     spectrogram = tf.abs(spectrogram)
-    # 3. Convert to mel-spectogram 
+    # 3. Convert to mel-spectrogram 
     mel_spectrogram = tfio.audio.melscale(spectrogram, rate=16000, mels=128, fmin=0, fmax=4000) # TODO: play with this numbers 
 
     # 4. Tranform it into appropiate format for deep learning model by adding the channel dimension
     mel_spectrogram = tf.expand_dims(mel_spectrogram, axis=2)
     return mel_spectrogram
 
-def convert_to_mel_spectogram_db_scale(wave):
+def convert_to_mel_spectrogram_db_scale(wave):
     # 1. Fast fourier transform 
     spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
     # 2. Obtain the magnitude of the STFT
     spectrogram = tf.abs(spectrogram)
 
-    # 3. Convert into mel-spectogram
+    # 3. Convert into mel-spectrogram
     mel_spectrogram = tfio.audio.melscale(spectrogram, rate=16000, mels=128, fmin=0, fmax=4000) #TODO: play with this numbers 
 
-    # 4. Convert the mel-spectogram into db scale
+    # 4. Convert the mel-spectrogram into db scale
     dbscale_mel_spectrogram = tfio.audio.dbscale(mel_spectrogram, top_db=80) 
 
     # 5. Tranform it into appropiate format for deep learning model by adding the channel dimension
     dbscale_mel_spectrogram = tf.expand_dims(dbscale_mel_spectrogram, axis=2)
     return dbscale_mel_spectrogram
 
+def convert_to_spectrogram_temp(wave):
+    # 1. Fast fourier transform #TODO: finish this 
+    spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
+    return spectrogram
 
 def transform_data (waves, type_transformation):
     transformed_signals = []
 
-    if (type_transformation == 'spectogram'):
+    if (type_transformation == 'spectrogram'):
         for wave in waves: 
-            transformed_wave = convert_to_spectogram(wave)
+            wave = pad_sample(wave)
+            transformed_wave = convert_to_spectrogram(wave)
             transformed_signals.append(transformed_wave)
 
     elif (type_transformation == 'mel_spectrogram'):
        for wave in waves: 
-            transformed_wave = convert_to_mel_spectogram(wave)
+            wave = pad_sample(wave)
+            transformed_wave = convert_to_mel_spectrogram(wave)
             transformed_signals.append(transformed_wave)
 
     elif (type_transformation == 'db_mel_spectrogram'): 
         for wave in waves: 
-            transformed_wave = convert_to_mel_spectogram_db_scale(wave)
+            wave = pad_sample(wave)
+            transformed_wave = convert_to_mel_spectrogram_db_scale(wave)
+            transformed_signals.append(transformed_wave)
+
+    elif(type_transformation == 'spectrogram_temp'): # TODO: finish 
+        for wave in waves: 
+            wave = pad_sample(wave)
+            transformed_wave = convert_to_spectrogram_temp(wave)
             transformed_signals.append(transformed_wave)
 
     return transformed_signals
@@ -142,13 +166,13 @@ def transform_data (waves, type_transformation):
 
 # Function pads the clips such that they all have the same length and it converts them into the specified 'type'. 
 def preprocess(file_path, label, type): 
-    """This function pads all clips so that their length is 10 seconds and it transforms them to eithter: spectogram, mel spectogram or 
-    mel spectogram in db scale. 
+    """This function pads all clips so that their length is 10 seconds and it transforms them to eithter: spectrogram, mel spectrogram or 
+    mel spectrogram in db scale. 
 
     Args:
         file_path (string)
         label (int): 1 or 0, depending if it's a gunshot or not. 
-        type (string): spectogram, mel_spectogram, mel_spectogram_db
+        type (string): spectrogram, mel_spectrogram, mel_spectrogram_db
 
     Returns:
         int: The sum of the two numbers. #TODO 
@@ -164,12 +188,12 @@ def preprocess(file_path, label, type):
     wave = tf.concat([zero_padding, wave],0) 
 
     # Transform data into specified 'type'
-    if type == 'spectogram':
-        new_data = convert_to_spectogram(wave)
-    elif type == 'mel_spectogram': 
-        new_data = convert_to_mel_spectogram(wave)
-    elif type == 'mel_spectogram_db': 
-        new_data = convert_to_mel_spectogram_db_scale(wave)
+    if type == 'spectrogram':
+        new_data = convert_to_spectrogram(wave)
+    elif type == 'mel_spectrogram': 
+        new_data = convert_to_mel_spectrogram(wave)
+    elif type == 'mel_spectrogram_db': 
+        new_data = convert_to_mel_spectrogram_db_scale(wave)
 
     return new_data, label
 

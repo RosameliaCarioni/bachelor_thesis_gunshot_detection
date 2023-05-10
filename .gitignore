@@ -4,3 +4,4 @@ data/*
 data_frames/*
 param_optimization/*
 *__pycache__*
+param_optimization2/*
