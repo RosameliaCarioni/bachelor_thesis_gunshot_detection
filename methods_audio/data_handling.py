@@ -1,7 +1,8 @@
 import tensorflow as tf
 import tensorflow_io as tfio
 import os 
-
+import librosa
+import numpy as np
 
 def get_data():
     """
@@ -12,13 +13,12 @@ def get_data():
     """    
 
     # Data from the elephant listening project 
-
-    general_path = os.path.join('data', 'train', 'Clips_ELP')
+    general_path = os.path.join('/Users','rosameliacarioni','University','Thesis','code','data', 'train', 'Clips_ELP')
 
     # To ensure that both classes have same of samples and to increase the number of gunshots, 
     # I extracted extra data from: https://data.mendeley.com/datasets/x48cwz364j/3 
-    background_path = os.path.join('data', 'train', 'Clips_Mendeley_no_gunshot')
-    guns_path = os.path.join('data', 'train', 'Clips_Mendeley_gunshot')
+    background_path = os.path.join('/Users','rosameliacarioni','University','Thesis','code','data', 'train', 'Clips_Mendeley_no_gunshot')
+    guns_path = os.path.join('/Users','rosameliacarioni','University','Thesis','code','data', 'train', 'Clips_Mendeley_gunshot')
 
     gunshot_files = [os.path.join(general_path, 'pnnn*'), os.path.join(general_path, 'ecoguns*'), os.path.join(guns_path, '*\.wav')]
 
@@ -86,13 +86,10 @@ def pad_sample(wave):
     return wave 
 
 def convert_to_spectrogram(wave):
-     # Create spectrogram 
     # 1. Fast fourier transform 
     spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
-    # frame_length =  window length in samples
-    # frame_step = number of samples to step
-    # 'Time frequency compromise' 
-    # if window size is small: you get good time resolution in exchange of poor frequency resolution 
+    # frame_length =  window length in samples --- frame_step = number of samples to step
+    # 'Time frequency compromise': if window size is small: you get good time resolution in exchange of poor frequency resolution 
 
     # 2. Obtain the magnitude of the STFT
     spectrogram = tf.abs(spectrogram)
@@ -102,32 +99,58 @@ def convert_to_spectrogram(wave):
     return spectrogram
 
 def convert_to_mel_spectrogram(wave):
+    sr_audio = 8000
+    number_mels_filterbanks = 128 
     # 1. Fast fourier transform 
     spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
     # 2. Obtain the magnitude of the STFT
     spectrogram = tf.abs(spectrogram)
     # 3. Convert to mel-spectrogram 
-    mel_spectrogram = tfio.audio.melscale(spectrogram, rate=16000, mels=128, fmin=0, fmax=4000) # TODO: play with this numbers 
+    mel_spectrogram = tfio.audio.melscale(spectrogram, rate=sr_audio, mels=number_mels_filterbanks, fmin=0, fmax=4000) 
 
     # 4. Tranform it into appropiate format for deep learning model by adding the channel dimension
     mel_spectrogram = tf.expand_dims(mel_spectrogram, axis=2)
     return mel_spectrogram
 
 def convert_to_mel_spectrogram_db_scale(wave):
+    sr_audio = 8000
+    number_mels_filterbanks = 128 
     # 1. Fast fourier transform 
     spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
     # 2. Obtain the magnitude of the STFT
     spectrogram = tf.abs(spectrogram)
 
     # 3. Convert into mel-spectrogram
-    mel_spectrogram = tfio.audio.melscale(spectrogram, rate=16000, mels=128, fmin=0, fmax=4000) #TODO: play with this numbers 
+    mel_spectrogram = tfio.audio.melscale(spectrogram, rate=sr_audio, mels=number_mels_filterbanks, fmin=0, fmax=4000) #TODO: play with this numbers 
 
     # 4. Convert the mel-spectrogram into db scale
-    dbscale_mel_spectrogram = tfio.audio.dbscale(mel_spectrogram, top_db=80) 
+    log_mel_spectrogram = librosa.power_to_db(mel_spectrogram.numpy())
+    dbscale_mel_spectrogram = tf.convert_to_tensor(log_mel_spectrogram)
 
     # 5. Tranform it into appropiate format for deep learning model by adding the channel dimension
     dbscale_mel_spectrogram = tf.expand_dims(dbscale_mel_spectrogram, axis=2)
     return dbscale_mel_spectrogram
+
+def convert_to_mfcc(wave): 
+    # https://www.youtube.com/watch?v=WJI-17MNpdE&t=575s&ab_channel=ValerioVelardo-TheSoundofAI
+    sr = 8000 
+    mfccs = librosa.feature.mfcc(wave.numpy(), n_mfcc = 13, sr = sr)
+    mfccs = tf.convert_to_tensor(mfccs) 
+    mfccs = tf.expand_dims(mfccs, axis=2)
+
+    return mfccs 
+
+def convert_to_mfcc_and_delta(wave): 
+    # https://www.youtube.com/watch?v=WJI-17MNpdE&t=575s&ab_channel=ValerioVelardo-TheSoundofAI
+    sr = 8000 
+    mfccs = librosa.feature.mfcc(wave.numpy(), n_mfcc = 13, sr = sr)
+    delta_mfccs = librosa.feature.delta(mfccs)
+    delta2_mfccs = librosa.feature.delta(mfccs, order=2)
+    result = np.concatenate((mfccs, delta_mfccs, delta2_mfccs)) 
+    mfccs = tf.convert_to_tensor(result) 
+    mfccs = tf.expand_dims(mfccs, axis=2)
+
+    return mfccs 
 
 def convert_to_spectrogram_temp(wave):
     # 1. Fast fourier transform #TODO: finish this 
@@ -153,6 +176,18 @@ def transform_data (waves, type_transformation):
         for wave in waves: 
             wave = pad_sample(wave)
             transformed_wave = convert_to_mel_spectrogram_db_scale(wave)
+            transformed_signals.append(transformed_wave)
+
+    elif (type_transformation == 'mfcc'): 
+        for wave in waves: 
+            wave = pad_sample(wave)
+            transformed_wave = convert_to_mfcc(wave)
+            transformed_signals.append(transformed_wave)
+
+    elif (type_transformation == 'mfcc_delta'): 
+        for wave in waves: 
+            wave = pad_sample(wave)
+            transformed_wave = convert_to_mfcc_and_delta(wave)
             transformed_signals.append(transformed_wave)
 
     elif(type_transformation == 'spectrogram_temp'): # TODO: finish 

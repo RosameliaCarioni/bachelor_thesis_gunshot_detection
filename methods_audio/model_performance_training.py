@@ -9,6 +9,7 @@ from methods_audio import data_augmentation
 from methods_audio import denoising 
 from methods_audio import data_handling
 import tensorflow as tf
+from methods_models import get_model_02
 
 
 def train_model(model:tf.keras.Model, x_train:list, y_train:list, x_val:list, y_val:list, batch:int, epoch:int): 
@@ -40,7 +41,18 @@ def train_model(model:tf.keras.Model, x_train:list, y_train:list, x_val:list, y_
     )
     return model, history 
 
-def train_performance_k_fold (location_model:str, x:list, y:list, learning_rate:int, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
+def load_model_method(number_model:int, input_size):
+    if number_model==1:
+        model = keras.models.load_model('data/models/01')
+    elif number_model==2:
+        model = get_model_02.get_model(input_size)
+    elif number_model ==3:
+        model = keras.models.load_model('data/models/03')
+
+    return model 
+
+
+def train_performance_k_fold (number_model:int, x:list, y:list, learning_rate:int, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
     """ 
     https://machinelearningmastery.com/evaluate-performance-deep-learning-models-keras/ 
     https://repository.tudelft.nl/islandora/object/uuid%3A6f4f3def-f8e0-4820-8b4f-75b0254dadcd 
@@ -63,7 +75,7 @@ def train_performance_k_fold (location_model:str, x:list, y:list, learning_rate:
     # Set values 
     epoch = epoch
     batch = batch_size
-    splits = 10
+    splits = 5
 
     kfold = StratifiedKFold(n_splits=splits, shuffle=True, random_state=123)
     acc_scores = [] # of test data 
@@ -71,16 +83,7 @@ def train_performance_k_fold (location_model:str, x:list, y:list, learning_rate:
     confusion_matrices = []
 
     for train, test in kfold.split(x, y):
-        # 1. load model 
-        model = keras.models.load_model(location_model)
-      
-        # 2. Compile model ensuring to have wanted metrics
-        model.compile(
-            optimizer=keras.optimizers.SGD(learning_rate=learning_rate), 
-            loss="BinaryCrossentropy", 
-            metrics = ['accuracy', 'Recall', 'Precision'],
-        )
-
+        
         # 3. Split data and transform it from list of numpy.ndarray into numpy.ndarray of numpy.ndarray
         x_train = np.array(x)[train.astype(int)]
         y_train = np.array(y)[train.astype(int)]
@@ -118,6 +121,17 @@ def train_performance_k_fold (location_model:str, x:list, y:list, learning_rate:
         x_train = np.array(x_train_list) 
         y_train = np.array(y_train_list) 
         x_valid = np.array(x_valid_list) 
+
+        input_shape = x_train[0].shape
+        # 1. load compiled model 
+        model = load_model_method(number_model, input_shape)
+      
+        # 2. Compile model ensuring to have wanted metrics
+        model.compile(
+            optimizer=keras.optimizers.SGD(learning_rate=learning_rate), 
+            loss="BinaryCrossentropy", 
+            metrics = ['accuracy', 'Recall', 'Precision'],
+        )
 
         # 8. Save the history of the model for future analysis
         model, hist = train_model(model, x_train, y_train, x_valid, y_valid, batch, epoch)        
