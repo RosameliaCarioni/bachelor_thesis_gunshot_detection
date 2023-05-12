@@ -1,11 +1,58 @@
-from audiomentations import Compose, AddGaussianNoise, TimeStretch, PitchShift, TimeMask, SpecCompose, SpecFrequencyMask
+from audiomentations import Compose, AddGaussianNoise, TimeStretch, PitchShift, TimeMask, Reverse, ClippingDistortion, Gain, Mp3Compression
 import random
 from methods_audio import data_handling
 
 def time_gaussian_noise(samples): 
+    # Similar to Noise Adds
     sample_rate = 8000
     augment = Compose([
     AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=0.5),
+])  
+    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    return augmented_samples
+
+def time_reverse(samples):
+    # Similar to rand time shift 
+    sample_rate = 8000
+    augment = Compose([
+    Reverse(p=0.5),
+    ])  
+    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    return augmented_samples
+
+def time_pitch_shift(samples): 
+    # Same as pitch shift, similar to wow resampling 
+    sample_rate = 8000
+    augment = Compose([  
+    PitchShift(min_semitones=-4, max_semitones=4, p=0.5),
+])  
+    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    return augmented_samples
+
+def time_clip(samples): 
+    # Similar to clipping where percentage of points that will be clipped is drawn from a uniform distribution between
+    # the two input parameters min_percentile_threshold and max_percentile_threshold.
+    sample_rate = 8000
+    augment = Compose([  
+    ClippingDistortion(min_percentile_threshold= 0, max_percentile_threshold= 40, p= 0.5,),
+])  
+    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    return augmented_samples
+
+def time_gain(samples): 
+    # Similar to gain
+    sample_rate = 8000
+    augment = Compose([  
+    Gain(min_gain_in_db = 10, max_gain_in_db = 10, p = 0.5,),
+])  
+    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    return augmented_samples
+
+def time_compression(samples): 
+    # Similar to gain
+    sample_rate = 8000
+    augment = Compose([  
+    Mp3Compression(),
 ])  
     augmented_samples = augment(samples=samples, sample_rate=sample_rate)
     return augmented_samples
@@ -18,14 +65,6 @@ def time_mask(samples):
     augmented_samples = augment(samples=samples, sample_rate=sample_rate)
     return augmented_samples
 
-def time_pitch_shift(samples): 
-    sample_rate = 8000
-    augment = Compose([  
-    PitchShift(min_semitones=-4, max_semitones=4, p=0.5),
-])  
-    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
-    return augmented_samples
-
 def time_strecht(samples): 
     sample_rate = 8000
     augment = Compose([
@@ -34,15 +73,6 @@ def time_strecht(samples):
     augmented_samples = augment(samples=samples, sample_rate=sample_rate)
     return augmented_samples
 
-
-def spectrogram_frequency_mask (spectrogram):
-    
-    augment = SpecCompose([
-        SpecFrequencyMask(p=0.5),
-    ])
-    augmented_spectrogram = augment(spectrogram)
-
-    return augmented_spectrogram
 
 def time_augmentation(samples, labels): 
     """
@@ -63,8 +93,12 @@ def time_augmentation(samples, labels):
         time_sample = time_mask(sample)
         pitch_sample = time_pitch_shift(sample)
         strecht_sample = time_strecht(sample)
-        new_samples += [sample,gauss_sample,time_sample, pitch_sample,  strecht_sample]
-        new_labels += [label]*5
+        reversed_sample = time_reverse(sample)
+        clip_sample = time_clip(sample)
+        gain_sample = time_gain(sample)
+        compressed_sample = time_compression(sample)
+        new_samples += [sample,gauss_sample,time_sample, pitch_sample,  strecht_sample, reversed_sample, clip_sample, gain_sample, compressed_sample]
+        new_labels += [label]*9
 
     # Shuffle the lists to reduce any type of bias, ensuring that the paring of signal/label is kept 
     paired_list = list(zip(new_samples, new_labels))
@@ -75,37 +109,3 @@ def time_augmentation(samples, labels):
     # Eventhough we unzipped the data, the type is still duple, so when returning it, we cast it to list
 
     return list(shuffled_signals), list(suffled_labels)
-
-def spectrogram_augmentaion(samples, labels): 
-    """
-        This method generates new data from spectrograms 
-
-        :param spectrogram: list with spectrograms that will be augmented
-        :type samples: list of numpy.ndrray
-        :param labels: list with the category of the signal. Either 1 (gunshot) or 0 
-        :type arg2: list of int
-        :return: 2 new lists with the original data and the augmented data
-    """
-    # 1. Transform data from time domain to frequency domain  
-    spectrogram = data_handling.transform_data(samples, type_transformation= 'spectrogram_temp')
-    new_spects = []
-    new_labels = []
-
-    # 2. Do data augmentation in frequency domain 
-    for spect, label in zip(spectrogram, labels): 
-        spect_augmented = spectrogram_frequency_mask(spect)
-        new_spects += [spect, spect_augmented]
-        new_labels += [label]*2
-
-    # 3. Transform back into time domain from frequency domain  
-    #TODO     
-
-    # 3. Shuffle the lists to reduce any type of bias, ensuring that the paring of signal/label is kept 
-    paired_list = list(zip(new_spects, new_labels))
-    random.shuffle(paired_list)
-
-    shuffled_spect, suffled_labels = zip(*paired_list) #unziping 
-
-    # Eventhough we unzipped the data, the type is still duple, so when returning it, we cast it to list
-
-    return list(shuffled_spect), list(suffled_labels)
