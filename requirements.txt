@@ -6,3 +6,6 @@ seaborn
 sklearn
 librosa
 pydub
+tensorflow_io
+audiomentations
+noisereduce
