@@ -69,7 +69,7 @@ def load_model_method(number_model:int, input_size, input_type):
     return model, learning_rate 
 
 
-def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
+def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, differentiation:bool, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
     """ 
     https://machinelearningmastery.com/evaluate-performance-deep-learning-models-keras/ 
     https://repository.tudelft.nl/islandora/object/uuid%3A6f4f3def-f8e0-4820-8b4f-75b0254dadcd 
@@ -118,11 +118,11 @@ def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch
     
         # 6. Data denoising: if input is none then we do nothing 
         if (type_denoising == 'spectral'): 
-            x_train_list = denoising.apply_spectral(x_train_list)
-            x_valid_list =denoising.apply_spectral(x_valid_list)
+            x_train_list = denoising.apply_spectral(x_train_list, differentiation)
+            x_valid_list =denoising.apply_spectral(x_valid_list, differentiation)
         elif(type_denoising == 'low_pass'): 
-            x_train_list = denoising.apply_low_pass(x_train_list, low_pass_cutoff, low_pass_order)
-            x_valid_list =denoising.apply_low_pass(x_valid_list, low_pass_cutoff, low_pass_order)
+            x_train_list = denoising.apply_low_pass(x_train_list, low_pass_cutoff, low_pass_order, differentiation)
+            x_valid_list =denoising.apply_low_pass(x_valid_list, low_pass_cutoff, low_pass_order, differentiation)
 
         # 7. Pad samples so that they all have the same length and transform data to frequency domain
         x_train_list = data_handling.transform_data(x_train_list, type_transformation)
