@@ -1,8 +1,9 @@
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPool2D
 
+
 def get_model(input_shape):
-    # input  (624, 129, 1) # input matches with the size of data, which can be obtained as: samples,labels = data.as_numpy_iterator().next() and then samples.shape
+    # Obtained from: Danaei, D. (2021). Gunshot Detection in Wildlife using Deep Learning. 
 
     model = Sequential()
     model.add(Conv2D(filters= 40, kernel_size = (3,3), activation='relu', input_shape=input_shape, strides = (1,1)))
@@ -23,3 +24,6 @@ def get_model(input_shape):
     model.add(Dense(1, activation='sigmoid'))
 
     return model 
+
+# to see model: 
+# model.summary()

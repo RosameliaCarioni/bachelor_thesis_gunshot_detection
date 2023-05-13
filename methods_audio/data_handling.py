@@ -4,6 +4,7 @@ import os
 import librosa
 import numpy as np
 
+# TODO: delete this method, it was only used for debugging 
 def get_data2():
     """
     https://www.youtube.com/watch?v=ZLIPkmmDJAc&t=1468s&ab_channel=NicholasRenotte 
@@ -206,11 +207,6 @@ def convert_to_mfcc_and_delta(wave):
 
     return mfccs 
 
-def convert_to_spectrogram_temp(wave):
-    # 1. Fast fourier transform #TODO: finish this 
-    spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
-    return spectrogram
-
 def transform_data (waves, type_transformation):
     transformed_signals = []
 
@@ -243,13 +239,7 @@ def transform_data (waves, type_transformation):
             wave = pad_sample(wave)
             transformed_wave = convert_to_mfcc_and_delta(wave)
             transformed_signals.append(transformed_wave)
-
-    elif(type_transformation == 'spectrogram_temp'): # TODO: finish 
-        for wave in waves: 
-            wave = pad_sample(wave)
-            transformed_wave = convert_to_spectrogram_temp(wave)
-            transformed_signals.append(transformed_wave)
-
+            
     return transformed_signals
 
 

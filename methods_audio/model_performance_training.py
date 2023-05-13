@@ -9,7 +9,7 @@ from methods_audio import data_augmentation
 from methods_audio import denoising 
 from methods_audio import data_handling
 import tensorflow as tf
-from methods_models import get_model_02
+from models import get_model_01
 
 
 def train_model(model:tf.keras.Model, x_train:list, y_train:list, x_val:list, y_val:list, batch:int, epoch:int): 
@@ -41,18 +41,35 @@ def train_model(model:tf.keras.Model, x_train:list, y_train:list, x_val:list, y_
     )
     return model, history 
 
-def load_model_method(number_model:int, input_size):
+def load_model_method(number_model:int, input_size, input_type):
     if number_model==1:
-        model = keras.models.load_model('data/models/01')
+        model = get_model_01.get_model(input_size)
+        learning_rate = 0.01
+
+    # TODO: the locations need to be changed, same as the learning rate
     elif number_model==2:
-        model = get_model_02.get_model(input_size)
-    elif number_model ==3:
-        model = keras.models.load_model('data/models/03')
+        if input_type == 'spectrogram': 
+            model = keras.models.load_model('data/models/01')
+            learning_rate = 1
+        elif input_type == 'mffc_delta': 
+            model = keras.models.load_model('data/models/01')
+            learning_rate = 1
+        elif input_type == 'mfcc': 
+            model = keras.models.load_model('data/models/01')
+            learning_rate = 1
+        elif input_type == 'mel_spectrogram': 
+            model = keras.models.load_model('data/models/01')
+            learning_rate = 1
+        elif input_type == 'db_mel_spectrogram': 
+            model = keras.models.load_model('data/models/01')
+            learning_rate = 1
 
-    return model 
+  
+
+    return model, learning_rate 
 
 
-def train_performance_k_fold (number_model:int, x:list, y:list, learning_rate:int, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
+def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
     """ 
     https://machinelearningmastery.com/evaluate-performance-deep-learning-models-keras/ 
     https://repository.tudelft.nl/islandora/object/uuid%3A6f4f3def-f8e0-4820-8b4f-75b0254dadcd 
@@ -98,12 +115,6 @@ def train_performance_k_fold (number_model:int, x:list, y:list, learning_rate:in
         # 5. Data agumentation: if input is none then we do nothing  
         if (type_augmentation == 'signal'):
             x_train_list, y_train_list = data_augmentation.time_augmentation(x_train_list, y_train_list)
-        elif(type_augmentation == 'spectrogram'):
-            # TODO: work out what to do  
-            x_train_list, y_train_list = data_augmentation.spectrogram_augmentaion(x_train_list, y_train_list)
-        elif(type_augmentation == 'both'): 
-            # TODO: sort this out 
-             pass 
     
         # 6. Data denoising: if input is none then we do nothing 
         if (type_denoising == 'spectral'): 
@@ -124,7 +135,7 @@ def train_performance_k_fold (number_model:int, x:list, y:list, learning_rate:in
 
         input_shape = x_train[0].shape
         # 1. load compiled model 
-        model = load_model_method(number_model, input_shape)
+        model, learning_rate = load_model_method(number_model, input_shape, type_transformation)
       
         # 2. Compile model ensuring to have wanted metrics
         model.compile(
