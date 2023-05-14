@@ -143,3 +143,4 @@ print(f"Learning rate: {learning_rate}")
 model = tuner.hypermodel.build(best_hps)
 
 location = 'data/models/mel_spectrogram'
+model.save(location)
