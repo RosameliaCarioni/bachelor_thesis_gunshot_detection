@@ -39,34 +39,7 @@ def train_model(model:tf.keras.Model, x_train:list, y_train:list, x_val:list, y_
         validation_data=(x_val, y_val),
         # callbacks=[stop_early],
     )
-    return model, history 
-
-def load_model_method(number_model:int, input_size, input_type):
-    if number_model==1:
-        model = get_model_01.get_model(input_size)
-        learning_rate = 0.01
-
-    # TODO: the locations need to be changed, same as the learning rate
-    elif number_model==2:
-        if input_type == 'spectrogram': 
-            model = keras.models.load_model('data/models/01')
-            learning_rate = 1
-        elif input_type == 'mffc_delta': 
-            model = keras.models.load_model('data/models/01')
-            learning_rate = 1
-        elif input_type == 'mfcc': 
-            model = keras.models.load_model('data/models/01')
-            learning_rate = 1
-        elif input_type == 'mel_spectrogram': 
-            model = keras.models.load_model('data/models/01')
-            learning_rate = 1
-        elif input_type == 'db_mel_spectrogram': 
-            model = keras.models.load_model('data/models/01')
-            learning_rate = 1
-
-  
-
-    return model, learning_rate 
+    return model, history  
 
 
 def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, differentiation:bool, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
@@ -132,10 +105,9 @@ def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch
         x_train = np.array(x_train_list) 
         y_train = np.array(y_train_list) 
         x_valid = np.array(x_valid_list) 
-
         input_shape = x_train[0].shape
         # 1. load  model 
-        model, learning_rate = get_model(number_model, input_shape)
+        model, learning_rate = get_model.get_model(number_model, input_shape)
       
         # 2. Compile model ensuring to have wanted metrics
         model.compile(
@@ -165,10 +137,14 @@ def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch
 def get_metrics(epoch, histories):
 
     # Initialize the lists that will be used and returned 
-    list_loss = [], list_val_loss = []
-    list_precision = [], list_val_precision = []
-    list_recall = [], list_val_recall = []
-    list_accuracy = [], list_val_accuracy = []
+    list_loss = []
+    list_val_loss = []
+    list_precision = []
+    list_val_precision = []
+    list_recall = []
+    list_val_recall = []
+    list_accuracy = []
+    list_val_accuracy = []
 
     for i in range(epoch):
         temp_loss = [ hist.history['loss'][i] for hist in histories ]

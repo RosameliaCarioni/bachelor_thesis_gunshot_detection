@@ -143,6 +143,9 @@ def convert_to_mel_spectrogram(wave):
     return mel_spectrogram
 
 def convert_to_mel_spectrogram_db_scale(wave):
+    # https://analyticsindiamag.com/a-guide-to-audio-data-preparation-using-tensorflow/
+    # https://importchris.medium.com/how-to-create-understand-mel-spectrograms-ff7634991056 
+    # https://librosa.org/doc/main/generated/librosa.display.specshow.html
     sr_audio = 8000
     number_mels_filterbanks = 128 
     # 1. Fast fourier transform 
@@ -151,7 +154,7 @@ def convert_to_mel_spectrogram_db_scale(wave):
     spectrogram = tf.abs(spectrogram)
 
     # 3. Convert into mel-spectrogram
-    mel_spectrogram = tfio.audio.melscale(spectrogram, rate=sr_audio, mels=number_mels_filterbanks, fmin=0, fmax=4000) #TODO: play with this numbers 
+    mel_spectrogram = tfio.audio.melscale(spectrogram, rate=sr_audio, mels=number_mels_filterbanks, fmin=0, fmax=4000)  
 
     # 4. Convert the mel-spectrogram into db scale
     db_mel_spectrogram = librosa.power_to_db(mel_spectrogram.numpy())
@@ -196,7 +199,7 @@ def convert_to_mfcc(wave):
     return mfccs 
 
 def convert_to_mfcc_and_delta(wave): 
-    # https://www.youtube.com/watch?v=WJI-17MNpdE&t=575s&ab_channel=ValerioVelardo-TheSoundofAI
+    # https://github.com/musikalkemist/AudioSignalProcessingForML/tree/master/20-%20Extracting%20MFCCs%20with%20Python
     sr = 8000 
     mfccs = librosa.feature.mfcc(wave.numpy(), n_mfcc = 13, sr = sr)
     delta_mfccs = librosa.feature.delta(mfccs)
