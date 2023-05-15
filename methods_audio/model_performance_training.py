@@ -9,7 +9,7 @@ from methods_audio import data_augmentation
 from methods_audio import denoising 
 from methods_audio import data_handling
 import tensorflow as tf
-from models import get_model_01
+from models import get_model
 
 
 def train_model(model:tf.keras.Model, x_train:list, y_train:list, x_val:list, y_val:list, batch:int, epoch:int): 
@@ -134,8 +134,8 @@ def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch
         x_valid = np.array(x_valid_list) 
 
         input_shape = x_train[0].shape
-        # 1. load compiled model 
-        model, learning_rate = load_model_method(number_model, input_shape, type_transformation)
+        # 1. load  model 
+        model, learning_rate = get_model(number_model, input_shape)
       
         # 2. Compile model ensuring to have wanted metrics
         model.compile(
