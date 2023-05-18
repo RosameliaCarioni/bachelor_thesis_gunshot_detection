@@ -24,7 +24,6 @@ def get_model_danaei(input_shape):
     model.add(Dense(1, activation='sigmoid'))
     return model 
 
-
 def get_model(model_number, input_shape = None): 
     base_path = '/Users/rosameliacarioni/University/Thesis/code/data/models/'
     if model_number == 1:
@@ -35,9 +34,9 @@ def get_model(model_number, input_shape = None):
         model = keras.models.load_model(path)
         learning_rate = 0.002826642869055423
     elif model_number == 3:
-        path = base_path + 'mel_spectrogram'
+        path = base_path + 'spectrogram'
         model = keras.models.load_model(path)
-        learning_rate = 1 # TODO 
+        learning_rate = 0.05143203418301916
     elif model_number == 4:
         path = base_path + 'mfcc'
         model = keras.models.load_model(path)
@@ -46,10 +45,6 @@ def get_model(model_number, input_shape = None):
         path = base_path + 'mfcc_delta'
         model = keras.models.load_model(path)
         learning_rate = 0.0033434076841967254
-    elif model_number == 6:
-        path = base_path + 'spectrogram'
-        model = keras.models.load_model(path)
-        learning_rate = 0.05143203418301916
     else: 
         print ('invalid input')
 

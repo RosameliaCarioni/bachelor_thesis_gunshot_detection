@@ -19,7 +19,7 @@ def spectral(wave):
     # https://pypi.org/project/noisereduce/
 
     rate = 8000
-    reduced_noise = nr.reduce_noise(y=wave, sr=rate, stationary=True)
+    reduced_noise = nr.reduce_noise(y=wave, sr=rate, stationary=True, win_length =256, hop_length = 128) 
     return reduced_noise
 
 def apply_spectral(signals, differentiation): 
@@ -46,14 +46,14 @@ def apply_spectral(signals, differentiation):
 
 
 # LOW PASS FILTER METHODS 
-def low_pass(wave, cutoff, order): 
+def low_pass(wave, cutoff, order=4): 
     # Allows only frequencies bellow a certain threshold to pass.
     sample_rate = 8000 
     b, a = butter(order, cutoff, fs=sample_rate, btype='low', analog=False)
     filtered_data = lfilter(b, a, wave)
     return filtered_data
 
-def apply_low_pass(signals, cutoff, order, differentiation): 
+def apply_low_pass(signals, cutoff, differentiation, order=4): 
     """
         This method denoises a list of signals by applying spectral gate denoising 
 

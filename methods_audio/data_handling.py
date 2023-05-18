@@ -4,36 +4,6 @@ import os
 import librosa
 import numpy as np
 
-# TODO: delete this method, it was only used for debugging 
-def get_data2():
-    """
-    https://www.youtube.com/watch?v=ZLIPkmmDJAc&t=1468s&ab_channel=NicholasRenotte 
-
-    Returns:
-        All data including gunshots and no gunshots, with the form (file_path,label)
-    """    
-
-    # Data from the elephant listening project 
-    general_path = os.path.join('/Users','rosameliacarioni','University','Thesis','code','data', 'train', 'ollie')
-
-    
-    gunshot_files = [os.path.join(general_path, 'pnnn*'), os.path.join(general_path, 'ecoguns*')]
-
-    gunshot = tf.data.Dataset.list_files(gunshot_files, shuffle=False)  # setting shuffle to False so that the files get always read in the same order 
-
-    #to see how many files are in each group: 
-    #num_elements = tf.data.experimental.cardinality(no_gunshot).numpy()
-
-    # Add labels to the data 
-    gunshot = tf.data.Dataset.zip((gunshot, tf.data.Dataset.from_tensor_slices(tf.ones(len(gunshot)))))
-
-    # Concatenate gunshots and no gunshots and shuffle data 
-    data = gunshot
-    data = data.cache()
-    data = data.shuffle(buffer_size=1000, seed = 123) # mixing training samples 1000 at the time  
-
-    return data
-
 def get_data():
     """
     https://www.youtube.com/watch?v=ZLIPkmmDJAc&t=1468s&ab_channel=NicholasRenotte 
@@ -70,7 +40,6 @@ def get_data():
 
     return data
 
-
 def read_in_data(file_name, label): 
     """_summary_
 
@@ -88,7 +57,6 @@ def read_in_data(file_name, label):
     wave = wave / tf.reduce_max(tf.abs(wave)) #normalize 
     wave = tf.squeeze(wave, axis= -1) #removes axis 
     return wave, label
-
 
 def extract_samples_labels(data): 
     iterator = data.as_numpy_iterator()
@@ -128,20 +96,6 @@ def convert_to_spectrogram(wave):
     spectrogram = tf.expand_dims(spectrogram, axis=2)
     return spectrogram
 
-def convert_to_mel_spectrogram(wave):
-    sr_audio = 8000
-    number_mels_filterbanks = 128 
-    # 1. Fast fourier transform 
-    spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
-    # 2. Obtain the magnitude of the STFT
-    spectrogram = tf.abs(spectrogram)
-    # 3. Convert to mel-spectrogram 
-    mel_spectrogram = tfio.audio.melscale(spectrogram, rate=sr_audio, mels=number_mels_filterbanks, fmin=0, fmax=4000) 
-
-    # 4. Tranform it into appropiate format for deep learning model by adding the channel dimension
-    mel_spectrogram = tf.expand_dims(mel_spectrogram, axis=2)
-    return mel_spectrogram
-
 def convert_to_mel_spectrogram_db_scale(wave):
     # https://analyticsindiamag.com/a-guide-to-audio-data-preparation-using-tensorflow/
     # https://importchris.medium.com/how-to-create-understand-mel-spectrograms-ff7634991056 
@@ -162,31 +116,6 @@ def convert_to_mel_spectrogram_db_scale(wave):
 
     # 5. Tranform it into appropiate format for deep learning model by adding the channel dimension
     dbscale_mel_spectrogram = tf.expand_dims(dbscale_mel_spectrogram, axis=2)
-    return dbscale_mel_spectrogram
-
-# TODO: not  sure if this is going to be used, if it is then it needs to be added to the method that handles the type of feature 
-def convert_to_mel_spectrogram_log_db(wave):
-    sr_audio = 8000
-    number_mels_filterbanks = 128 
-    # 1. Fast fourier transform 
-    spectrogram = tf.signal.stft(wave, frame_length=256, frame_step=128)  # Paper: 'Automated detection of gunshots in tropical forests using CNN' 
-    # 2. Obtain the magnitude of the STFT
-    spectrogram = tf.abs(spectrogram)
-
-    # 3. Convert into mel-spectrogram
-    mel_spectrogram = tfio.audio.melscale(spectrogram, rate=sr_audio, mels=number_mels_filterbanks, fmin=0, fmax=4000) #TODO: play with this numbers 
-
-    # 4. Convert the mel-spectrogram into db scale
-    db_mel_spectrogram = librosa.power_to_db(mel_spectrogram.numpy())
-
-    # 5. Convert mel-spectrogram in db scale to log-mel spectrogram 
-    log_mel_spectrogram = tf.math.log(db_mel_spectrogram + 1e-6) # the + 1e-6 is to ensure not taking the log of 0 
-    
-
-    log_mel_spectrogram = tf.convert_to_tensor(log_mel_spectrogram)
-
-    # 5. Tranform it into appropiate format for deep learning model by adding the channel dimension
-    dbscale_mel_spectrogram = tf.expand_dims(log_mel_spectrogram, axis=2)
     return dbscale_mel_spectrogram
 
 def convert_to_mfcc(wave): 
@@ -219,12 +148,6 @@ def transform_data (waves, type_transformation):
             transformed_wave = convert_to_spectrogram(wave)
             transformed_signals.append(transformed_wave)
 
-    elif (type_transformation == 'mel_spectrogram'):
-       for wave in waves: 
-            wave = pad_sample(wave)
-            transformed_wave = convert_to_mel_spectrogram(wave)
-            transformed_signals.append(transformed_wave)
-
     elif (type_transformation == 'db_mel_spectrogram'): 
         for wave in waves: 
             wave = pad_sample(wave)
@@ -246,36 +169,4 @@ def transform_data (waves, type_transformation):
     return transformed_signals
 
 
-# Function pads the clips such that they all have the same length and it converts them into the specified 'type'. 
-def preprocess(file_path, label, type): 
-    """This function pads all clips so that their length is 10 seconds and it transforms them to eithter: spectrogram, mel spectrogram or 
-    mel spectrogram in db scale. 
-
-    Args:
-        file_path (string)
-        label (int): 1 or 0, depending if it's a gunshot or not. 
-        type (string): spectrogram, mel_spectrogram, mel_spectrogram_db
-
-    Returns:
-        int: The sum of the two numbers. #TODO 
-    """
-
-    # Load data
-    wave, sr = load_data(file_path)
-    max_lenght = 80000 # = 10* 8000, this means 10 seconds 
-
-    # Padding 
-    wave = wave[:max_lenght] #grab first elements up to max(lengths)
-    zero_padding = tf.zeros(max_lenght - tf.shape(wave), dtype=tf.float32) # pad with zeros what doesn't meet full length 
-    wave = tf.concat([zero_padding, wave],0) 
-
-    # Transform data into specified 'type'
-    if type == 'spectrogram':
-        new_data = convert_to_spectrogram(wave)
-    elif type == 'mel_spectrogram': 
-        new_data = convert_to_mel_spectrogram(wave)
-    elif type == 'mel_spectrogram_db': 
-        new_data = convert_to_mel_spectrogram_db_scale(wave)
-
-    return new_data, label
 

@@ -42,7 +42,7 @@ def train_model(model:tf.keras.Model, x_train:list, y_train:list, x_val:list, y_
     return model, history  
 
 
-def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, differentiation:bool, low_pass_cutoff:int, low_pass_order:int, type_transformation:str) -> tuple:
+def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch_size:int, type_augmentation:str, type_denoising:str, differentiation:bool, low_pass_cutoff:int, low_pass_order:int, type_transformation:str, probability=0) -> tuple:
     """ 
     https://machinelearningmastery.com/evaluate-performance-deep-learning-models-keras/ 
     https://repository.tudelft.nl/islandora/object/uuid%3A6f4f3def-f8e0-4820-8b4f-75b0254dadcd 
@@ -87,7 +87,7 @@ def train_performance_k_fold (number_model:int, x:list, y:list, epoch:int, batch
         
         # 5. Data agumentation: if input is none then we do nothing  
         if (type_augmentation == 'signal'):
-            x_train_list, y_train_list = data_augmentation.time_augmentation(x_train_list, y_train_list)
+            x_train_list, y_train_list = data_augmentation.time_augmentation(x_train_list, y_train_list, probability)
     
         # 6. Data denoising: if input is none then we do nothing 
         if (type_denoising == 'spectral'): 
