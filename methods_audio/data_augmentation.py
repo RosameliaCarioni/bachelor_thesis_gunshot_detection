@@ -1,92 +1,97 @@
-from audiomentations import Compose, AddGaussianNoise, TimeStretch, PitchShift, TimeMask, Reverse, ClippingDistortion, Gain, Mp3Compression
+from audiomentations import AddGaussianNoise, TimeStretch, PitchShift, Reverse, TanhDistortion
 import random
-from methods_audio import data_handling
 import numpy as np 
 
-def time_gaussian_noise(samples, probability): 
+def time_gaussian_noise(samples, probability):
+    """Apply gaussian noise to a sample given a probability
+
+    Args:
+        samples
+        probability (float): of the augmentation occuring, value between 0 and 1. 
+
+    Returns:
+        augmented sample
+    """    
+
     # Similar to Noise Adds
     sample_rate = 8000
-    augment = Compose([
-    AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=probability),
-])  
-    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    transform = AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=probability) 
+    augmented_samples = transform(samples=samples, sample_rate=sample_rate)
     return augmented_samples
 
 def time_reverse(samples, probability):
+    """Reverse a sample given a probability
+
+    Args:
+        samples
+        probability (float): of the augmentation occuring, value between 0 and 1. 
+
+    Returns:
+        augmented sample
+    """    
     # Similar to rand time shift 
     sample_rate = 8000
-    augment = Compose([
-    Reverse(p=probability),
-    ])  
-    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    transform = Reverse(p=probability)
+    augmented_samples = transform(samples=samples, sample_rate=sample_rate)
     return augmented_samples
 
 def time_pitch_shift(samples, probability): 
-    # Same as pitch shift, similar to wow resampling 
+    """Pitch shift the sample up or down by -4 or 4 semitones without changing the tempo
+
+    Args:
+        samples
+        probability (float): of the augmentation occuring, value between 0 and 1. 
+
+    Returns:
+        augmented sample
+    """    
     sample_rate = 8000
-    augment = Compose([  
-    PitchShift(min_semitones=-4, max_semitones=4, p=probability),
-])  
-    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    transform = PitchShift(min_semitones=-4, max_semitones=4, p=probability)  
+    augmented_samples = transform(samples=samples, sample_rate=sample_rate)
     return augmented_samples
 
-def time_clip(samples, probability): 
-    # Similar to clipping where percentage of points that will be clipped is drawn from a uniform distribution between
-    # the two input parameters min_percentile_threshold and max_percentile_threshold.
-    sample_rate = 8000
-    augment = Compose([  
-    ClippingDistortion(min_percentile_threshold= 0, max_percentile_threshold= 40, p= probability),
-])  
-    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
-    return augmented_samples
+def time_tahn(samples, probability):
+    """Pitch shift the sample up or down by -4 or 4 semitones without changing the tempo
 
-def time_gain(samples, probability): 
-    # Similar to gain
-    sample_rate = 8000
-    augment = Compose([  
-    Gain(min_gain_in_db = 10, max_gain_in_db = 10, p = probability),
-])  
-    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
-    return augmented_samples
+    Args:
+        samples
+        probability (float): of the augmentation occuring, value between 0 and 1. 
 
-def time_compression(samples, probability): 
-    # Similar to gain
+    Returns:
+        augmented sample
+    """    
     sample_rate = 8000
-    augment = Compose([  
-    Mp3Compression(p = probability),
-])  
-    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
-    return augmented_samples
-
-def time_mask(samples, probability): 
-    sample_rate = 8000
-    augment = Compose([
-    TimeMask(min_band_part=0.0, max_band_part= 0.1, fade = False, p = probability), 
-])  
-    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    transform = TanhDistortion( min_distortion=0.01, max_distortion=0.7, p=probability)
+    augmented_samples = transform(samples=samples, sample_rate=sample_rate)
     return augmented_samples
 
 def time_strecht(samples, probability): 
+    """Time stretches the audio making it faster
+
+    Args:
+        samples
+        probability (float): of the augmentation occuring, value between 0 and 1. 
+
+    Returns:
+        augmented sample
+    """    
     sample_rate = 8000
-    augment = Compose([
-    TimeStretch(min_rate=0.8, max_rate=1.25, p = probability),
-])  
-    augmented_samples = augment(samples=samples, sample_rate=sample_rate)
+    transform = TimeStretch(min_rate=0.8, max_rate=1.25, p = probability)  
+    augmented_samples = transform(samples=samples, sample_rate=sample_rate)
     return augmented_samples
 
 
-def time_augmentation(samples, labels, probability): 
-    """
-        This method generates new data from signals 
+def time_augmentation(samples:list, labels:list, probability:float): 
+    """Generate new data from a list of signals (samples), given a probability of occurance
+    Args:
+        samples (list): list with signals that will be augmented
+        labels (list): list with the category of the signal. Either 1 (gunshot) or 0 
+        probability (float): of the augmentation occuring, value between 0 and 1. 
 
-        :param samples: list with signals that will be augmented
-        :type samples: list of numpy.ndrray
-        :param labels: list with the category of the signal. Either 1 (gunshot) or 0 
-        :type arg2: list of int
-        :return: 2 new lists with the original data and the augmented data
+    Returns:
+        list:  2 lists, one with the original data and the augmented data merged, and the second one with the labels for the data
+    """    
 
-    """
-    
     new_samples = []
     new_labels = []
     for sample, label in zip(samples, labels): 
@@ -99,10 +104,10 @@ def time_augmentation(samples, labels, probability):
             new_samples += [gauss_sample]
             new_labels += [label]
 
-        time_sample = time_mask(sample, probability)
-        if not np.all([np.array_equal(arr1, arr2) for arr1, arr2 in zip(sample, time_sample)]): 
+        tahn_sample = time_tahn(sample, probability)
+        if not np.all([np.array_equal(arr1, arr2) for arr1, arr2 in zip(sample, tahn_sample)]): 
             # if the samples are not the same, it means that augmentation occured so save the new one 
-            new_samples += [time_sample]
+            new_samples += [tahn_sample]
             new_labels += [label]
 
         pitch_sample = time_pitch_shift(sample, probability)
@@ -122,24 +127,6 @@ def time_augmentation(samples, labels, probability):
             # if the samples are not the same, it means that augmentation occured so save the new one 
             new_samples += [reversed_sample]
             new_labels += [label]
-
-        clip_sample = time_clip(sample, probability)
-        if not np.all([np.array_equal(arr1, arr2) for arr1, arr2 in zip(sample, clip_sample)]): 
-            # if the samples are not the same, it means that augmentation occured so save the new one 
-            new_samples += [clip_sample]
-            new_labels += [label]
-
-        gain_sample = time_gain(sample, probability)
-        if not np.all([np.array_equal(arr1, arr2) for arr1, arr2 in zip(sample, gain_sample)]): 
-            # if the samples are not the same, it means that augmentation occured so save the new one 
-            new_samples += [gain_sample]
-            new_labels += [label]
-
-        #compressed_sample = time_compression(sample, probability)
-        #if not np.all([np.array_equal(arr1, arr2) for arr1, arr2 in zip(sample, compressed_sample)]): 
-            # if the samples are not the same, it means that augmentation occured so save the new one 
-        #    new_samples += [compressed_sample]
-        #    new_labels += [label]
 
     # Shuffle the lists to reduce any type of bias, ensuring that the paring of signal/label is kept 
     paired_list = list(zip(new_samples, new_labels))

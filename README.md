@@ -11,7 +11,7 @@ https://console-openshift-console.apps.dsri2.unimaas.nl/topology/
 ``` 
 
 ## Docker Commands
-To list images 
+To list images
 ```
 docker image ls
 ```

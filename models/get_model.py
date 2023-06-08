@@ -3,7 +3,15 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPool2D
 
 def get_model_danaei(input_shape): 
-    # Obtained from: Danaei, D. (2021). Gunshot Detection in Wildlife using Deep Learning. 
+    """Given a specific input shape, the method generates a model following the work of Danaei (2021). 
+    Danaei, D. (2021). Gunshot Detection in Wildlife using Deep Learning. 
+
+    Args:
+        input_shape
+
+    Returns:
+        model
+    """    
 
     model = Sequential()
     model.add(Conv2D(filters= 40, kernel_size = (3,3), activation='relu', input_shape=input_shape, strides = (1,1)))
@@ -24,7 +32,16 @@ def get_model_danaei(input_shape):
     model.add(Dense(1, activation='sigmoid'))
     return model 
 
-def get_model(model_number, input_shape = None): 
+def get_model(model_number:int, input_shape = None): 
+    """Returns a model given an id 
+
+    Args:
+        model_number (int)
+        input_shape: Defaults to None.
+
+    Returns:
+        model
+    """    
     base_path = '/Users/rosameliacarioni/University/Thesis/code/data/models/'
     if model_number == 1:
         model = get_model_danaei(input_shape)

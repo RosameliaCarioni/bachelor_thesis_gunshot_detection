@@ -2,18 +2,17 @@
 import pandas as pd
 import wave
 from scipy.signal import butter, filtfilt
-import soundfile as sf
 import matplotlib.pyplot as plt
-from scipy import signal
 import numpy as np
 import scipy.io.wavfile as wavfile
-import librosa, librosa.display
-import noisereduce as nr
-from scipy.interpolate import interp1d
-from matplotlib import mlab
 
+def joint_plots (origen_file:str, destination_file:str):
+    """Generate plot with 3 subplots in: time-domain representation, magnitude spectrum and spectrogram of an audio sample
 
-def joint_plots (origen_file, destination_file):
+    Args:
+        origen_file (str)
+        destination_file (str): to save the plots
+    """    
     # Load audio file and apply FFT
     sample_rate, samples = wavfile.read(origen_file)
 
@@ -51,12 +50,20 @@ def joint_plots (origen_file, destination_file):
 
     # Combine all the plots into a single figure
     plt.tight_layout()
-    plt.savefig(destination_file)
+    #plt.savefig(destination_file)
+    plt.show()
     plt.close()
-    #plt.show()
+    plt.show()
 
+def plot_freq_spectrum (origen_file:str, destination_file:str):
+    """Generate spectrogram
 
-def plot_freq_spectrum (origen_file, destination_file):
+    Args:
+        origen_file (str)
+        destination_file (str)
+
+    """    
+
     wave_object = wave.open(origen_file, 'rb')
     channel = wave_object.getnchannels()
     n_samples = wave_object.getnframes()
@@ -68,7 +75,6 @@ def plot_freq_spectrum (origen_file, destination_file):
     signal_array = np.frombuffer(signal_wave, dtype=np.int16)
     plt.figure(figsize=(19, 5))
     plt.specgram(signal_array, Fs=sample_freq, vmin=-20, vmax=50)
-    #plt.specgram(signal_array, Fs=sample_freq, vmin=-70, vmax=0)
     plt.title('Spectogram')
     plt.ylabel('Frequency (Hz)')
     plt.xlabel('Time (s)')
@@ -78,8 +84,14 @@ def plot_freq_spectrum (origen_file, destination_file):
     plt.close()
     #plt.show()
 
+def plot_time (origen_file:str, destination_file:str):
+    """"Generate plot with time-domain representation 
 
-def plot_time (origen_file, destination_file):
+    Args:
+        origen_file (str):
+        destination_file (str)
+
+    """    
     wave_object = wave.open(origen_file, 'rb')
     channel = wave_object.getnchannels()
     n_samples = wave_object.getnframes()
