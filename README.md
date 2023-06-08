@@ -11,13 +11,13 @@ https://console-openshift-console.apps.dsri2.unimaas.nl/topology/
 ``` 
 
 ## Docker Commands
-To list images
+To list images 
 ```
 docker image ls
 ```
 To build image 
 ```
-docker build -t rosameliacarioni/bachelor_thesis_gunshot .
+docker build -t rosameliacarioni/bachelo`r_thesis_gunshot .
 ```
 
 Push image to docker hub 
