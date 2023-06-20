@@ -2,7 +2,7 @@ data/*
 .DS_Store
 .idea/*
 data_frames/*
-param_optimization/*
 *__pycache__*
-param_optimization2/*
 experiments_results/*
+param_optimization2/*
+param_optimization/*
