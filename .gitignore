@@ -4,5 +4,3 @@ data/*
 data_frames/*
 *__pycache__*
 experiments_results/*
-param_optimization2/*
-param_optimization/*
