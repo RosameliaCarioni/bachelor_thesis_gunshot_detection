@@ -9,3 +9,6 @@ pydub
 tensorflow_io
 audiomentations
 noisereduce
+black[jupyter]
+ruff 
+nbqa
