@@ -1,0 +1,13 @@
+[tool.ruff]
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default. ('I') for isort. ("D") docstrings
+select = ["E", "F", "I", "D"]
+# Same as Black.
+line-length = 130
+
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.black]
+line-length = 130
+
