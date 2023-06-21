@@ -9,6 +9,9 @@ pydub
 tensorflow_io
 audiomentations
 noisereduce
+pandas
+Wave
+keras-tuner
 black[jupyter]
 ruff 
 nbqa
