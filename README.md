@@ -5,8 +5,8 @@ This codes is part of my bachelor's thesis work on gunshot identification in pas
 
 The results of this work demonstrate that constructing a CNN model using Bayesian hyperparameter optimization and incorporating data augmentation, low-pass filtering with a cutoff frequency of 1500 Hz, and extraction of deltas and delta-deltas Mel-frequency cepstral coefficients as pre-processing techniques yield a highly accurate model capable of predicting the presence of a gunshot with an accuracy rate of 99\%, and a precision and recall of 100\% and 96\%, respectively.
 
-## Essay:
-For a detailed understanding of the research and methodologies employed in this project, you can refer to the [essay](https://drive.google.com/file/d/1ZuRUnGzWbor3GLN9bOO2Nc_efPYf-5-W/view?usp=share_link).
+## Report:
+For a detailed understanding of the research and methodologies employed in this project, you can refer to the [report](https://drive.google.com/file/d/1ZuRUnGzWbor3GLN9bOO2Nc_efPYf-5-W/view?usp=share_link).
 
 ## Author
 Rosamelia Carioni Porras
